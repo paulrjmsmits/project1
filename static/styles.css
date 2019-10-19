@@ -1,0 +1,27 @@
+#logo {
+    color: green;
+    font-size: large;
+}
+
+.bg {
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  background-image: url("booksbackground.jpg");
+}
+
+.textblock {
+    background-color: silver;
+    padding: 10px;
+}
+.footer {
+  font-style: italic;
+  font-size: small;
+  padding: 10px;
+  background-color: white;
+  color: black;
+  opacity: 0.8;
+  float: right;
+  width: 200px;
+  margin-top: 80px;
+}
