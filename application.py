@@ -24,14 +24,6 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Ensure responses aren't cached
-@app.after_request
-def after_request(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Expires"] = 0
-    response.headers["Pragma"] = "no-cache"
-    return response
-
 # Set up database
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
@@ -40,8 +32,9 @@ db = scoped_session(sessionmaker(bind=engine))
 @app.route("/")
 @login_required
 def index():
-    return "Project 1: TODO"
-    ## return render_termplate("index.html")
+    """Search for books"""
+    return render_template("index.html")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -63,7 +56,7 @@ def register():
 
         # Check if password fulfils requirements for valid password
         elif not password_check(request.form.get("password")):
-            flash("Passwords should be at least eight and at most 30 characters long, contain one uppercase and one lowercase letter and one of the symbols $@#%&_")
+            flash("Passwords should be at least eight and at most 30 characters long, contain one digit, one uppercase and one lowercase letter and one of the symbols $@#%&_")
             return render_template("register.html")
 
         # Ensure second entry of password matches first
@@ -77,24 +70,23 @@ def register():
         # Query database for username to check it doesn't exist already
         rows = db.execute("SELECT * FROM users WHERE username = :username",
                           {"username": username}).fetchone()
-        print(rows)
 
         if rows is not None:
             flash("Username already exists")
             return render_template("register.html")
 
         # Insert username and password hash into database
-        db.execute("INSERT INTO users(username, pw_hash) VALUES (:username, :pw_hash)",
+        print(generate_password_hash(password))
+        db.execute("INSERT INTO users (username, pw_hash) VALUES (:username, :pw_hash)",
                    {"username": username, "pw_hash": generate_password_hash(password)})
+        db.commit()
 
         # Retrieve the id from the user
         id = db.execute("SELECT user_id FROM users WHERE username = :username",
-                        {"username": username}).fetchone()
-        print(id)
+                        {"username": username}).fetchone()["user_id"]
 
         # Remember the id of the user who has just registered
         session["user_id"] = id
-        print(session["user_id"])
 
         # Redirect user to home page
         return redirect("/")
@@ -131,13 +123,14 @@ def login():
         # Ensure username exists and password is correct
         if rows is None:
             flash("Invalid username")
+            return render_template("login.html")
         else:
             if not check_password_hash(rows["pw_hash"], request.form.get("password")):
                 flash("Invalid password")
-        return render_template("login.html")
+                return render_template("login.html")
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+        session["user_id"] = rows["user_id"]
 
         # Redirect user to home page
         return redirect("/")
@@ -158,47 +151,64 @@ def logout():
     return redirect("/")
 
 
-@app.route("/search")
+@app.route("/search", methods=["GET", "POST"])
 @login_required
 def search():
-    return "Search: TODO"
+    """Search books"""
+
+    # User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+        # Ensure username was submitted
+
+        isbn = request.form.get("isbn")
+        author = request.form.get("author")
+        title = request.form.get("title")
+
+        if not isbn and not author and not title:
+            flash("Please enter ISBN number or author or title")
+            return render_template("index.html")
+
+        if not isbn:
+            isbn = ""
+        if not author:
+            author = ""
+        else:
+            author = author.lower()
+        if not title:
+            title = ""
+        else:
+            title = title.lower()
+
+        # Query database for username to check it doesn't exist already
+        rows = db.execute("SELECT * FROM books WHERE POSITION(:isbn IN books.isbn) > 0 AND POSITION(:author IN LOWER(books.author)) > 0 AND POSITION(:title IN LOWER(books.title)) > 0",
+                          {"isbn": isbn, "author": author, "title": title}).fetchall()
+
+        if rows is None:
+            flash("No books found with this ISBN, author and title")
+            return render_template("index.html")
+
+        return render_template("confirm.html", rows=rows)
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("index.html")
 
 
-@app.route("/confirm", methods=["POST"])
-@login_required
-def book():
-    """Confirm selection."""
-    ## TODO
-
-    # Get form information.
-    name = request.form.get("name")
-    try:
-        flight_id = int(request.form.get("flight_id"))
-    except ValueError:
-        return render_template("error.html", message="Invalid flight number.")
-
-    # Make sure the flight exists.
-    flight = Flight.query.get(flight_id)
-    if not flight:
-        return render_template("error.html", message="No such flight with that id.")
-
-    # Add passenger.
-    flight.add_passenger(name)
-    return render_template("success.html")
-
-
-@app.route("/submitreview")
-@login_required
-def bookinfo():
-    return "Book information: TODO"
-
-@app.route("/submitreview")
+@app.route("/submitreview", methods=["GET", "POST"])
 @login_required
 def submitreview():
     return "Submit review: TODO"
 
 
+@app.route("/success", methods=["GET", "POST"])
+@login_required
+def success():
+    return "success: TODO"
 
+
+
+
+'''
 @app.route("/demo")
 @login_required
 def demo():
@@ -247,3 +257,4 @@ def flight_api(flight_id):
             "duration": flight.duration,
             "passengers": names
         })
+'''

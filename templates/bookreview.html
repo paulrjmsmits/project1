@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Success
+{% endblock %}
+
+{% block main %}
+    <div class="container" style="padding: 20px">
+        <div class="row">
+            <div class="col">
+                <h3 class="textblock">
+                    Write a review
+                </h3>
+                <p class="textblock">
+                    Write a review for a book that you have read.
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form action="{{ url_for('success') }}" method="post">
+                    <div class="form-group">
+                        <label for="exampleFormControlTextarea1">Example textarea</label>
+                        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control" name="review" placeholder="Book review" type="text">
+                    </div>
+                    <button class="btn btn-primary" type="submit">Submit review</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

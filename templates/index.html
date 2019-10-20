@@ -4,29 +4,33 @@
     Search book
 {% endblock %}
 
-{% block body %}
-    <h1>Search book</h1>
+{% block main %}
 
-    <form action="{{ url_for('confirm') }}" method="post">
-
-        <!-- Input ISBN -->
-        <div class="form-group">
-            <input class="form-control" name="isbn" placeholder="ISBN number">
+<div class="container" style="padding: 20px">
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-6">
+            <h3 class="textblock">
+                Search book
+            </h3>
+            <p class="textblock">
+                Search for a book that you want information on or for which you would like to write a review. You can search on ISBN number, on author or on (part of) title.
+            </p>
+            <form action="{{ url_for('search') }}" method="post">
+                <div class="form-group">
+                    <input autocomplete="off" autofocus class="form-control" name="isbn" placeholder="ISBN number" type="text">
+                </div>
+                <div class="form-group">
+                    <input class="form-control" name="author" placeholder="Author" type="text">
+                </div>
+                <div class="form-group">
+                    <input class="form-control" name="title" placeholder="Book title" type="text">
+                </div>
+                <button class="btn btn-primary" type="submit">Search</button>
+            </form>
         </div>
+        <div class="col-2"></div>
+    </div>
+</div>
 
-        <!-- Input author -->
-        <div class="form-group">
-            <input class="form-control" name="author" placeholder="Author">
-        </div>
-
-        <!-- Input title -->
-        <div class="form-group">
-            <input class="form-control" name="title" placeholder="Book title">
-        </div>
-
-        <div class="form-group">
-            <button class="btn btn-primary">Submit</button>
-        </div>
-
-    </form>
 {% endblock %}
