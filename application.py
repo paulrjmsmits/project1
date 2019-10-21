@@ -1,6 +1,7 @@
 import os
 import csv
 import json
+import requests
 
 from flask import Flask, session, request, flash, jsonify, redirect, render_template
 from flask_session import Session
@@ -76,7 +77,6 @@ def register():
             return render_template("register.html")
 
         # Insert username and password hash into database
-        print(generate_password_hash(password))
         db.execute("INSERT INTO users (username, pw_hash) VALUES (:username, :pw_hash)",
                    {"username": username, "pw_hash": generate_password_hash(password)})
         db.commit()
@@ -187,24 +187,74 @@ def search():
             flash("No books found with this ISBN, author and title")
             return render_template("index.html")
 
-        return render_template("confirm.html", rows=rows)
+        return render_template("selectconfirm.html", rows = rows)
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("index.html")
 
 
+@app.route("/infoforreview", methods=["GET", "POST"])
+@login_required
+def infoforreview():
+    if request.method == "POST":
+
+        # personal key given by GoodReads
+        key = "Bfq3f3uZuPfGtfElArpA"
+
+        book_id = request.form.get("book_id")
+        if not book_id:
+            flash("Invalid book ID")
+
+        book = db.execute("SELECT * FROM books WHERE book_id = :book_id",
+                          {"book_id": book_id}).fetchone()
+        isbn = book["isbn"]
+
+        book_info = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbn": isbn})
+        book_info["author"] = book["author"]
+        book_info["title"] = book["title"]
+        print(book_info.json())
+
+        reviews = db.execute("SELECT user_id, review FROM reviews WHERE book_id = :book_id",
+                             {"book_id": book_id}).fetchall()
+        for review in reviews:
+            db.execute("SELECT username FROM users WHERE user_id = :user_id",
+                       {"user_id": review["user_id"]})
+            review["username"] = username
+
+        return render_template("infoforreview.html", book_info = book_info, reviews = reviews)
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return redirect("/")
+
+
 @app.route("/submitreview", methods=["GET", "POST"])
 @login_required
 def submitreview():
-    return "Submit review: TODO"
+    if request.method == "POST":
 
+        # TO DO: get review and user_id
+        user_id = session["user_id"]
+        username = db.execute("SELECT username FROM users WHERE user_id = :user_id",
+                                  {"user_id": user_id}).fetchone()["username"]
+        print(user_id, username)
 
-@app.route("/success", methods=["GET", "POST"])
-@login_required
-def success():
-    return "success: TODO"
+        text = request.form.get("reviewtext")
+        if text is None:
+            flash("Please submit review")
+            return render_template("submitreview.html")
 
+        # Insert username and password hash into database
+        db.execute("INSERT INTO reviews (user_id, book_id, review) VALUES (:user_id, :book_id, :review)",
+                   {"user_id": user_id, "book_id": book_id, "review": review})
+        db.commit()
+
+        return render_template("reviewsuccess.html", username = username)
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("submitreview.html")
 
 
 

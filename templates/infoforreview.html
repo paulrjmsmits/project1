@@ -16,21 +16,44 @@
                 </p>
             </div>
         </div>
+
         <div class="row">
             <div class="col">
-                <form action="{{ url_for('success') }}" method="post">
+                <p class="textblock">Bookinfo from GoodReads</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <form action="{{ url_for('reviewsuccess') }}" method="post">
                     <div class="form-group">
                         <label for="exampleFormControlTextarea1">Example textarea</label>
                         <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <input class="form-control" name="review" placeholder="Book review" type="text">
+                        <input class="form-control" name="textreview" placeholder="Book review" type="text">
                     </div>
                     <button class="btn btn-primary" type="submit">Submit review</button>
                 </form>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col">
+                <p class="textblock">Reviews from other users:</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                {% for review in reviews}
+                <p class="textblock">{{ review.username }}</p>
+                <p class="textblock">{{ review.review }}</p>
+                {% endfor}
+            </div>
+        </div>
+
+
     </div>
 
 {% endblock %}
