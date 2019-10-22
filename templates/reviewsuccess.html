@@ -4,8 +4,16 @@
     Success!
 {% endblock %}
 
-{% block body %}
-    <h1>Success!</h1>
-
-    You have successfully submitted a review.
+{% block main %}
+<div class="container" style="padding: 20px">
+    <div class="row">
+        <div class="col">
+            <p class="textblock">
+                Thank you {{ username }}!<br>
+                You have succesfully submitted your review!<br>
+                Do you want to <a href="/">submit another</a>?
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}

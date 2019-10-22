@@ -205,24 +205,32 @@ def infoforreview():
         book_id = request.form.get("book_id")
         if not book_id:
             flash("Invalid book ID")
+            return redirect("/")
 
         book = db.execute("SELECT * FROM books WHERE book_id = :book_id",
                           {"book_id": book_id}).fetchone()
         isbn = book["isbn"]
 
-        book_info = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbn": isbn})
-        book_info["author"] = book["author"]
-        book_info["title"] = book["title"]
-        print(book_info.json())
+        # convert ISBN10 tot ISBN13
+        checksum = (10 - (9 + 3*7 + 8 + 3*int(isbn[0]) + int(isbn[1]) + 3*int(isbn[2]) + int(isbn[3]) + 3*int(isbn[4]) + int(isbn[5]) + 3*int(isbn[6]) + int(isbn[7]) + 3*int(isbn[8])) % 10) % 10
+        isbns = "978" + isbn[0:9] + str(checksum)
 
-        reviews = db.execute("SELECT user_id, review FROM reviews WHERE book_id = :book_id",
+        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": isbns})
+        if res:
+            book_info = res.json()["books"][0]
+
+        results = db.execute("SELECT user_id, review FROM reviews WHERE book_id = :book_id",
                              {"book_id": book_id}).fetchall()
-        for review in reviews:
-            db.execute("SELECT username FROM users WHERE user_id = :user_id",
-                       {"user_id": review["user_id"]})
-            review["username"] = username
+        reviews = []
+        # tranform results into array of dicts and add username to reviews, so that it can be passed to the web page
+        for result in results:
+            review = dict(result)
+            temp = db.execute("SELECT username FROM users WHERE user_id = :user_id",
+                       {"user_id": review["user_id"]}).fetchone()
+            review.update({"username": temp["username"]})
+            reviews.append(review)
 
-        return render_template("infoforreview.html", book_info = book_info, reviews = reviews)
+        return render_template("infoforreview.html", book = book, book_info = book_info, reviews = reviews)
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
@@ -240,10 +248,11 @@ def submitreview():
                                   {"user_id": user_id}).fetchone()["username"]
         print(user_id, username)
 
-        text = request.form.get("reviewtext")
-        if text is None:
-            flash("Please submit review")
-            return render_template("submitreview.html")
+        book_id = request.form.get("book_id")
+        review = request.form.get("reviewtext")
+        if review is None:
+            flash("Empty review. Please submit review on another book.")
+            return render_template("index.html")
 
         # Insert username and password hash into database
         db.execute("INSERT INTO reviews (user_id, book_id, review) VALUES (:user_id, :book_id, :review)",
@@ -254,25 +263,11 @@ def submitreview():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        return render_template("submitreview.html")
+        return render_template("index.html")
 
 
 
 '''
-@app.route("/demo")
-@login_required
-def demo():
-    flights = Flight.query.all()
-    return render_template("demo.html", flights=flights)
-
-
-@app.route("/flights")
-def flights():
-    """List all flights."""
-    flights = Flight.query.all()
-    return render_template("flights.html", flights=flights)
-
-
 @app.route("/flights/<int:flight_id>")
 def flight(flight_id):
     """List details about a single flight."""
