@@ -12,7 +12,7 @@ The site offers the possibility for users to submit reviews on a large number of
 After registration and login, the user is guided through the following steps:
 - search for a book with ISBN, author or title or combination thereof,
 - select a book from a list of books that match the given criteria,
-- read info and reviews from other users of the selected book and submit a review oneself,
+- read info and reviews from other users of the selected book and submit a rating (one to five stars) and review oneself,
 - confirmation of successful submission of review and possibility to submit another review.
 
 In the program this means the following dialogue:
@@ -20,20 +20,21 @@ In the program this means the following dialogue:
 - (server) hands over to function "search" that searches matching books in the database
 - (client) list of books that match criteria with possibility to select, on page "selectconfirm.html"
 - (server) hands over to function "infoforreview" which gathers information from GoodReads and reviews from other users
-- (client) present this information to user and offers possibility to submit a review, on page "infoforreview.html"
-- (server) function "submitreview" inserts the review in the database, with corresponding book id and user id
+- (client) present this information to user and offers possibility to submit a rating and review, on page "infoforreview.html"
+- (server) function "submitreview" inserts the rating and review in the database, with corresponding book id and user id
 - (client) page "reviewsuccess.html" confirms successful submission and offers possibility to submit another review
 
 # API
 
 In addition to this, developers from third parties can retrieve information on submitted reviews via the URL /API/<"ISBN-number">, where "ISBN-number" is a string with the 10-digit ISBN-number of the requested book. The response contains the book’s title, author, publication date, ISBN number, review count, and average score.The response has the form of a JSON-string with the following format:
+for URL /API/0060744510 :
 {
-    "title": "Memory",
-    "author": "Doug Lloyd",
-    "year": 2015,
-    "isbn": "1632168146",
-    "review_count": 28,
-    "average_score": 5.0
+    'author': 'Erin Hunter',
+    'average_score': 4.5,
+    'isbn': '0060744510',
+    'review_count': 2,
+    'title': 'Midnight',
+    'year': '2005'
 }
 
 # Technology and languages

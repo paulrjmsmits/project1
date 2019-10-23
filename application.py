@@ -3,7 +3,7 @@ import csv
 import json
 import requests
 
-from flask import Flask, session, request, flash, jsonify, redirect, render_template
+from flask import Flask, session, request, flash, jsonify, redirect, render_template, abort
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -246,17 +246,17 @@ def submitreview():
         user_id = session["user_id"]
         username = db.execute("SELECT username FROM users WHERE user_id = :user_id",
                                   {"user_id": user_id}).fetchone()["username"]
-        print(user_id, username)
 
+        rating = request.form.get("rate")
+        if rating is None:
+            flash("Please submit rating")
+            return redirect("/")
         book_id = request.form.get("book_id")
         review = request.form.get("reviewtext")
-        if review is None:
-            flash("Empty review. Please submit review on another book.")
-            return render_template("index.html")
 
         # Insert username and password hash into database
-        db.execute("INSERT INTO reviews (user_id, book_id, review) VALUES (:user_id, :book_id, :review)",
-                   {"user_id": user_id, "book_id": book_id, "review": review})
+        db.execute("INSERT INTO reviews (user_id, book_id, rating, review) VALUES (:user_id, :book_id, :rating, :review)",
+                   {"user_id": user_id, "book_id": book_id, "rating": rating, "review": review})
         db.commit()
 
         return render_template("reviewsuccess.html", username = username)
@@ -266,40 +266,37 @@ def submitreview():
         return render_template("index.html")
 
 
+@app.route("/api/<isbn>")
+def flight_api(isbn):
+    """Return details about a book with a given ISBN10"""
 
-'''
-@app.route("/flights/<int:flight_id>")
-def flight(flight_id):
-    """List details about a single flight."""
+    # Make sure the ISBN is valid
+    book = db.execute("SELECT * FROM books WHERE isbn = :isbn",
+                      {"isbn": isbn}).fetchone()
+    print(book)
+    if not book:
+        # invalid isbn or isbn not in database
+        abort(404, "ISBN number not found")
 
-    # Make sure flight exists.
-    flight = Flight.query.get(flight_id)
-    if flight is None:
-        return render_template("error.html", message="No such flight.")
+    reviews = db.execute("SELECT rating FROM reviews WHERE book_id = :book_id",
+                         {"book_id": book.book_id}).fetchall()
+    print(reviews)
+    review_count = len(reviews)
 
-    # Get all passengers.
-    passengers = flight.passengers
-    return render_template("flight.html", flight=flight, passengers=passengers)
+    if review_count == 0:
+        average_score = 0
+    else:
+        # calculate sum of all ratings
+        sum = 0
+        for review in reviews:
+            sum += review.rating
+        average_score = sum/review_count
 
-
-@app.route("/api/flights/<int:flight_id>")
-def flight_api(flight_id):
-    """Return details about a single flight."""
-
-    # Make sure flight exists.
-    flight = Flight.query.get(flight_id)
-    if flight is None:
-        return jsonify({"error": "Invalid flight_id"}), 422
-
-    # Get all passengers.
-    passengers = flight.passengers
-    names = []
-    for passenger in passengers:
-        names.append(passenger.name)
     return jsonify({
-            "origin": flight.origin,
-            "destination": flight.destination,
-            "duration": flight.duration,
-            "passengers": names
-        })
-'''
+            "title": book.title,
+            "author": book.author,
+            "year": book.year,
+            "isbn": isbn,
+            "review_count": review_count,
+            "average_score": average_score
+            })
